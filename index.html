@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="description" content="ListMow - Offline-first vacant property management for real estate">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ListMow</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg">
+    <link rel="apple-touch-icon" href="./icons/icon-192.svg">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <h1 class="app-title">ListMow</h1>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Home Screen -->
+            <section id="home-screen" class="screen active">
+                <div class="dashboard">
+                    <div class="stat-card savings-card">
+                        <div class="stat-icon">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Savings</div>
+                            <div class="stat-value" id="savings-value">$0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card cycles-card">
+                        <div class="stat-icon">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Completed Cycles</div>
+                            <div class="stat-value" id="cycles-value">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card properties-card">
+                        <div class="stat-icon">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Active Properties</div>
+                            <div class="stat-value" id="active-properties-value">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h2>Today's Queue</h2>
+                </div>
+                
+                <!-- Queue Summary -->
+                <div class="queue-summary" id="queue-summary">
+                    <div class="queue-stat overdue">
+                        <span class="queue-stat-label">Overdue</span>
+                        <span class="queue-stat-value" id="queue-overdue">0</span>
+                    </div>
+                    <div class="queue-stat due-today">
+                        <span class="queue-stat-label">Due Today</span>
+                        <span class="queue-stat-value" id="queue-due-today">0</span>
+                    </div>
+                    <div class="queue-stat due-soon">
+                        <span class="queue-stat-label">Due Soon</span>
+                        <span class="queue-stat-value" id="queue-due-soon">0</span>
+                    </div>
+                    <div class="queue-stat good">
+                        <span class="queue-stat-label">Good</span>
+                        <span class="queue-stat-value" id="queue-good">0</span>
+                    </div>
+                </div>
+
+                <div id="today-queue" class="property-list"></div>
+                <div id="empty-queue" class="empty-state hidden">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
+                    </svg>
+                    <p>No properties in queue</p>
+                    <p class="empty-subtext">Add properties to get started</p>
+                </div>
+            </section>
+
+            <!-- Properties Screen -->
+            <section id="properties-screen" class="screen">
+                <div class="search-bar">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <input type="text" id="property-search" placeholder="Search properties..." class="search-input" aria-label="Search properties">
+                </div>
+                <div class="action-bar">
+                    <button id="add-property-btn" class="fab-button" aria-label="Add property">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Add Property
+                    </button>
+                    <button id="show-archived-btn" class="secondary-button" aria-label="Show archived properties">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M5 8l6 6M19 8l-6 6M5 12h14"/>
+                        </svg>
+                        Archived
+                    </button>
+                </div>
+                <div id="properties-list" class="property-list"></div>
+                <div id="empty-properties" class="empty-state hidden">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    <p>No properties yet</p>
+                    <p class="empty-subtext">Add your first property to get started</p>
+                </div>
+            </section>
+
+            <!-- History Screen -->
+            <section id="history-screen" class="screen">
+                <div class="section-header">
+                    <h2>History</h2>
+                    <button id="clear-history-btn" class="text-button" aria-label="Clear history">Clear All</button>
+                </div>
+                <div id="history-list" class="history-list"></div>
+                <div id="empty-history" class="empty-state hidden">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                    </svg>
+                    <p>No history yet</p>
+                    <p class="empty-subtext">Actions will appear here</p>
+                </div>
+            </section>
+
+            <!-- Statistics Screen -->
+            <section id="statistics-screen" class="screen">
+                <div class="section-header">
+                    <h2>Statistics</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Lifetime Savings</div>
+                        <div class="stat-value" id="stat-savings">$0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Completed Cycles</div>
+                        <div class="stat-value" id="stat-cycles">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Average Mow Interval</div>
+                        <div class="stat-value" id="stat-avg-mow">0 days</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Average Edge Interval</div>
+                        <div class="stat-value" id="stat-avg-edge">0 days</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Most Overdue Property</div>
+                        <div class="stat-value" id="stat-overdue">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Longest Target Interval</div>
+                        <div class="stat-value" id="stat-longest-interval">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Shortest Target Interval</div>
+                        <div class="stat-value" id="stat-shortest-interval">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Most Frequently Mowed</div>
+                        <div class="stat-value" id="stat-most-mowed">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Newest Property</div>
+                        <div class="stat-value" id="stat-newest">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Oldest Property</div>
+                        <div class="stat-value" id="stat-oldest">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Active Properties</div>
+                        <div class="stat-value" id="stat-active">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Archived Properties</div>
+                        <div class="stat-value" id="stat-archived">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Screen -->
+            <section id="settings-screen" class="screen">
+                <div class="section-header">
+                    <h2>Settings</h2>
+                </div>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <label class="setting-label" for="round-value">Round Value ($)</label>
+                        <input type="number" id="round-value" class="setting-input" min="0" step="1" value="260" aria-describedby="round-value-desc">
+                        <span id="round-value-desc" class="setting-desc">Amount saved per completed cycle</span>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="current-savings">Current Savings ($)</label>
+                        <input type="number" id="current-savings" class="setting-input" min="0" step="1" value="0">
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="completed-cycles">Completed Cycles</label>
+                        <input type="number" id="completed-cycles" class="setting-input" min="0" step="1" value="0">
+                    </div>
+                </div>
+                <div class="settings-actions">
+                    <button id="save-settings-btn" class="primary-button">Save Settings</button>
+                    <button id="backup-db-btn" class="secondary-button">Backup Database</button>
+                    <button id="restore-db-btn" class="secondary-button">Restore Database</button>
+                    <button id="reset-db-btn" class="danger-button">Reset Database</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+            <button class="nav-item active" data-screen="home" aria-current="page">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+                <span>Home</span>
+            </button>
+            <button class="nav-item" data-screen="properties">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <span>Properties</span>
+            </button>
+            <button class="nav-item" data-screen="history">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                </svg>
+                <span>History</span>
+            </button>
+            <button class="nav-item" data-screen="statistics">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/>
+                </svg>
+                <span>Statistics</span>
+            </button>
+            <button class="nav-item" data-screen="settings">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                </svg>
+                <span>Settings</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Property Modal -->
+    <div id="property-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add Property</h3>
+                <button class="modal-close" id="close-modal" aria-label="Close modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <form id="property-form" class="modal-body">
+                <input type="hidden" id="property-id">
+                <div class="form-group">
+                    <label for="property-name">Property Name *</label>
+                    <input type="text" id="property-name" required class="form-input" aria-required="true">
+                </div>
+                <div class="form-group">
+                    <label for="property-address">Address</label>
+                    <input type="text" id="property-address" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="property-notes">Notes</label>
+                    <textarea id="property-notes" class="form-textarea" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="property-interval">Target Mow Interval (days) *</label>
+                    <input type="number" id="property-interval" required min="3" max="60" class="form-input" value="7" aria-required="true" aria-describedby="interval-desc">
+                    <span id="interval-desc" class="form-desc">Must be between 3 and 60 days</span>
+                </div>
+                <div class="form-group">
+                    <label for="property-last-mowed">Last Mowed</label>
+                    <select id="property-last-mowed" class="form-select" aria-describedby="last-mowed-desc">
+                        <option value="today" selected>Mowed Today</option>
+                        <option value="never">Never Mowed</option>
+                        <option value="custom">Choose Date</option>
+                    </select>
+                    <span id="last-mowed-desc" class="form-desc">When was this property last mowed?</span>
+                </div>
+                <div class="form-group hidden" id="custom-date-group">
+                    <label for="custom-mowed-date">Choose Date</label>
+                    <input type="date" id="custom-mowed-date" class="form-input">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="secondary-button" id="cancel-modal">Cancel</button>
+                    <button type="submit" class="primary-button">Save Property</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Property Detail Modal -->
+    <div id="property-detail-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detail-property-name">
+        <div class="modal-overlay"></div>
+        <div class="modal-content property-detail">
+            <div class="modal-header">
+                <h3 id="detail-property-name">Property Name</h3>
+                <button class="modal-close" id="close-detail-modal" aria-label="Close modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-info">
+                    <div class="detail-item">
+                        <span class="detail-label">Address</span>
+                        <span class="detail-value" id="detail-address">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Priority</span>
+                        <span class="detail-value" id="detail-priority">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Days Since Mowed</span>
+                        <span class="detail-value" id="detail-days-mowed">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Days Since Edged</span>
+                        <span class="detail-value" id="detail-days-edged">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Target Interval</span>
+                        <span class="detail-value" id="detail-interval">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Last Mowed</span>
+                        <span class="detail-value" id="detail-last-mowed-date">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Last Edged</span>
+                        <span class="detail-value" id="detail-last-edged-date">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Notes</span>
+                        <span class="detail-value" id="detail-notes">-</span>
+                    </div>
+                </div>
+                <div class="detail-actions">
+                    <button class="action-button mow-button" id="mow-today-btn" aria-label="Mark as mowed today">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Mowed Today
+                    </button>
+                    <button class="action-button edge-button" id="edge-today-btn" aria-label="Mark as edged today">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Edged Today
+                    </button>
+                    <button class="action-button edit-button" id="edit-property-btn" aria-label="Edit property">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        Edit
+                    </button>
+                    <button class="action-button archive-button" id="archive-property-btn" aria-label="Archive property">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M5 8l6 6M19 8l-6 6M5 12h14"/>
+                        </svg>
+                        Archive
+                    </button>
+                    <button class="action-button delete-button" id="delete-property-btn" aria-label="Delete property">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v3M4 7h16"/>
+                        </svg>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden" role="alert" aria-live="polite">
+        <span id="toast-message"></span>
+        <button id="toast-undo" class="toast-undo hidden">Undo</button>
+    </div>
+
+    <!-- Cycle Complete Animation -->
+    <div id="cycle-complete" class="cycle-complete hidden" role="dialog" aria-modal="true" aria-labelledby="cycle-complete-title">
+        <div class="cycle-content">
+            <svg class="cycle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 13l4 4L19 7"/>
+            </svg>
+            <h2 id="cycle-complete-title">Cycle Complete!</h2>
+            <p class="cycle-savings" id="cycle-savings">+$260</p>
+        </div>
+    </div>
+
+    <!-- File Input for Restore -->
+    <input type="file" id="restore-file-input" accept=".json" class="hidden" aria-label="Restore database from file">
+
+    <script src="./js/database.js"></script>
+    <script src="./js/properties.js"></script>
+    <script src="./js/settings.js"></script>
+    <script src="./js/history.js"></script>
+    <script src="./js/cycle.js"></script>
+    <script src="./js/statistics.js"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./app.js"></script>
+</body>
+</html>
