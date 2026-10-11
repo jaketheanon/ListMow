@@ -1,0 +1,445 @@
+# ListMow Development Workflow and Project State
+
+This file is the persistent working memory for the ListMow project.
+
+Any future ChatGPT session working on ListMow must read this file before making changes. Update this file after each completed development step so the next session knows exactly where the project stopped. Yes, this is project memory in a Markdown trench coat, because apparently software projects need receipts too.
+
+---
+
+## Core Rule
+
+Do not rebuild ListMow from scratch.
+
+Do not use Windsurf-generated rewrites unless the user explicitly asks.
+
+Work directly on the existing ListMow codebase in small, testable versions.
+
+Each version must:
+
+1. Modify only the files needed for that version.
+2. Preserve existing user data.
+3. Preserve GitHub Pages compatibility.
+4. Avoid breaking the installed Android PWA.
+5. Include backward-compatible IndexedDB migrations when the data model changes.
+6. Keep old user history intact.
+7. Update this file before stopping.
+8. Tell the user exactly what changed and what the next step is.
+
+If a task is too large, split it into versioned milestones instead of dumping a giant unstable patch into the repo.
+
+---
+
+## Current Repository
+
+Repository:
+
+```text
+https://github.com/jaketheanon/ListMow
+```
+
+Live GitHub Pages app:
+
+```text
+https://jaketheanon.github.io/ListMow/
+```
+
+Current app type:
+
+```text
+Offline-first Progressive Web App
+HTML / CSS / vanilla JavaScript / IndexedDB
+```
+
+---
+
+## Current Backup Reference
+
+Latest user-provided app backup:
+
+```text
+listmow-backup-2026-10-11.json
+```
+
+Backup timestamp:
+
+```text
+2026-10-11T04:34:07.500Z
+```
+
+Current settings from backup:
+
+```text
+roundValue: 260
+savings: 1340
+completedCycles: 5
+```
+
+The old app uses fixed cycle payment logic. The new system must replace that with per-property visit payments.
+
+---
+
+## Current Properties from Backup
+
+Active properties:
+
+| Property | Current Status | Interval | Mowed This Cycle | New Payment Per Paid Visit |
+|---|---:|---:|---:|---:|
+| Magnolia | active | 21 | true | $40 |
+| 5606 Ponderosa | active | 21 | true | $40 |
+| Home | active | 14 | true | $0 |
+| Scott | active | 21 | false | $60 |
+| Stable Pass | active | 21 | true | $40 |
+| 2663 Pebble Bow | active | 21 | true | $60 |
+| Hallie | active | 30 | false | $40 |
+| Timberline | active | 21 | true | $80 |
+
+Current cycle progress from backup:
+
+```text
+6 / 8 completed
+```
+
+Completed this cycle:
+
+```text
+Magnolia
+5606 Ponderosa
+Home
+Stable Pass
+2663 Pebble Bow
+Timberline
+```
+
+Remaining this cycle:
+
+```text
+Scott
+Hallie
+```
+
+Current unfinished-cycle earnings under the new payment model:
+
+```text
+Magnolia: $40
+5606 Ponderosa: $40
+Home: $0
+Stable Pass: $40
+2663 Pebble Bow: $60
+Timberline: $80
+Total: $260
+```
+
+Migration display total should initially be:
+
+```text
+Current saved earnings base: $1340
+Current unfinished-cycle earnings: $260
+Displayed total after migration: $1600
+```
+
+When Hallie is completed later:
+
+```text
++$40 -> $1640
+```
+
+When Scott is completed later:
+
+```text
++$60 -> $1700
+```
+
+After the current cycle is complete, starting a new cycle should only reset cycle completion flags. It should not add a fixed round amount anymore.
+
+---
+
+## Design Decision: Replace Round Payouts
+
+Old system:
+
+```text
+Complete full cycle -> add roundValue ($260) to savings
+```
+
+New system:
+
+```text
+Record paid visit for a property -> immediately add that property's payment amount to lifetime earnings
+```
+
+Every property has an editable `paymentPerVisit`.
+
+Default values:
+
+```text
+Default property: $40
+Home: $0
+Scott: $60
+2663 Pebble Bow: $60
+Timberline: $80
+```
+
+Payment amount changes affect future visits only. Old visit records must preserve the actual amount paid at that time.
+
+---
+
+## Design Decision: All Properties Are Listings
+
+Do not use `Property Type = Listing/Home` as a major model.
+
+All properties are homes/listings being maintained.
+
+Use `status` instead:
+
+```text
+active
+paused
+sold
+```
+
+Status meanings:
+
+### active
+
+- Appears in mowing/visit queue.
+- Counts toward current cycle.
+- Can earn money.
+
+### paused
+
+- Does not appear in normal mowing queue.
+- Does not count toward current cycle.
+- Used for under contract, temporarily not needing maintenance, seller maintaining, etc.
+- Should still appear in monthly property check reminders.
+- Can be resumed later without losing history.
+
+### sold
+
+- Hidden from active workflow.
+- No queue participation.
+- No reminders unless explicitly added later.
+- History remains permanently.
+
+Home is not a separate property type. It is simply a property with `paymentPerVisit = 0`, unless the user later changes the model.
+
+---
+
+## New Core Model: Visits
+
+ListMow should revolve around visits, not separate mow/edge histories.
+
+A visit record should support:
+
+```javascript
+{
+  id: string,
+  propertyId: string,
+  propertyName: string,
+  date: string,
+  work: [
+    "mowed",
+    "edged",
+    "weed_eating",
+    "blower_cleanup",
+    "property_check",
+    "no_work_needed"
+  ],
+  paid: boolean,
+  amount: number,
+  notes: string,
+  cycleNumber: number,
+  createdAt: string,
+  updatedAt: string | null
+}
+```
+
+Rules:
+
+- Mowed visits normally default to paid.
+- Edged-only visits should ask whether they are paid.
+- No Work Needed should ask whether it is paid.
+- Home/payment $0 should not add earnings.
+- A paid visit immediately increases lifetime earnings.
+- Undoing a paid visit must remove the payment.
+- The app must prevent accidental duplicate paid visits for the same property in the same cycle unless the user explicitly confirms it.
+
+---
+
+## Required Future Features
+
+These are approved goals, but they should be built incrementally.
+
+### v2.0.0 - Database Migration Foundation
+
+Status: NOT STARTED.
+
+Goal:
+
+- Add new schema fields.
+- Preserve old data.
+- Add per-property payment amounts.
+- Add status field.
+- Add visit history arrays / stores.
+- Add migration support.
+- Remove dependency on fixed round payout as the future source of truth.
+- Keep old UI working as much as possible until visit UI is implemented.
+
+Expected files likely affected:
+
+```text
+js/database.js
+js/settings.js
+js/properties.js
+js/cycle.js
+```
+
+Do not overhaul the UI in this milestone.
+
+### v2.1.0 - Record Visit Workflow
+
+Goal:
+
+- Replace Mowed Today / Edged Today with Record Visit workflow.
+- Allow selecting work performed: mowed, edged, both, no work needed, property check, etc.
+- Allow date selection: today, yesterday, choose date.
+- Ask payment question when appropriate.
+- Add optional visit notes.
+- Update lastMowed / lastEdged / lastInspection from visits.
+
+### v2.2.0 - Payment Ledger and Property Totals
+
+Goal:
+
+- Show lifetime earnings.
+- Show current cycle earnings.
+- Show today / month / year earnings.
+- Show per-property running total.
+- Preserve payment history.
+
+### v2.3.0 - Property Timeline
+
+Goal:
+
+- Each property gets one timeline.
+- Timeline includes visits, payments, edits, reminders, status changes, notes changes, etc.
+
+### v2.4.0 - Paused Properties and Monthly Checks
+
+Goal:
+
+- Pause / resume properties.
+- Paused properties do not count toward cycle.
+- Monthly check reminders for paused properties.
+- Status change history.
+
+### v2.5.0 - Reminders
+
+Goal:
+
+- Per-property reminders.
+- Reminders shown before recording a visit.
+- Outstanding reminder count on dashboard/property cards.
+
+### v2.6.0 - GPS and Directions
+
+Goal:
+
+- Direct Google Maps Directions button.
+- Optional GPS coordinates per property.
+- Optional arrival detection if supported.
+
+---
+
+## Migration Rules
+
+The first migration must never erase user data.
+
+Existing fields must be preserved:
+
+```text
+name
+address
+notes
+interval
+lastMowed
+lastEdged
+mowedThisCycle
+archived
+id
+dateCreated
+history
+settings
+```
+
+New fields should be added safely if missing:
+
+```javascript
+status: archived ? "sold" : "active",
+paymentPerVisit: computed based on property name,
+lastInspection: null,
+cycleCompleted: existing mowedThisCycle,
+lifetimeEarned: 0,
+visitHistory: [],
+reminders: [],
+quickAccess: {
+  lockbox: "",
+  gateCode: "",
+  alarmCode: "",
+  keyLocation: ""
+},
+gps: {
+  lat: null,
+  lng: null
+}
+```
+
+Settings should preserve old values and add new ones:
+
+```javascript
+lifetimeEarningsBase: oldSettings.savings,
+currentCycleEarnings: 260,
+lifetimeEarningsDisplay: oldSettings.savings + currentCycleEarnings,
+completedCycles: oldSettings.completedCycles,
+legacyRoundValue: oldSettings.roundValue,
+paymentModel: "per_visit",
+schemaVersion: 3
+```
+
+The exact implementation can use different field names if the existing code demands it, but the behavior must match this document.
+
+---
+
+## Development Process Rule
+
+Before starting a new coding step:
+
+1. Read this file.
+2. Inspect the current relevant source files.
+3. State which version/milestone is being worked on.
+4. Modify only the needed files.
+5. Preserve app installability through GitHub Pages.
+6. Update this file with:
+   - completed work,
+   - changed files,
+   - current status,
+   - next step,
+   - any known issues.
+
+After a version is finished:
+
+1. Tell the user what changed.
+2. Tell the user how to test it.
+3. Wait for user confirmation before moving to the next milestone.
+
+---
+
+## Current Stopping Point
+
+As of this file creation:
+
+```text
+Next task: Start v2.0.0 Database Migration Foundation.
+No v2 code changes have been made yet.
+```
+
+The latest known user requirements are captured in this file. Future work should continue from here, not from memory, because memory is what got humanity into password reset emails.
