@@ -58,6 +58,19 @@
                             <div class="stat-value" id="active-properties-value">0</div>
                         </div>
                     </div>
+                    <div class="stat-card cycle-progress-card">
+                        <div class="stat-icon">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Current Cycle</div>
+                            <div class="stat-value" id="cycle-progress-value">0 / 0</div>
+                            <div class="stat-subtext" id="cycle-progress-subtext">0 remaining</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="section-header">
@@ -129,9 +142,12 @@
 
             <!-- History Screen -->
             <section id="history-screen" class="screen">
-                <div class="section-header">
+                <div class="section-header history-header-actions">
                     <h2>History</h2>
-                    <button id="clear-history-btn" class="text-button" aria-label="Clear history">Clear All</button>
+                    <div class="section-actions">
+                        <button id="history-home-btn" class="text-button" aria-label="Go back to home">Home</button>
+                        <button id="clear-history-btn" class="text-button" aria-label="Clear history">Clear All</button>
+                    </div>
                 </div>
                 <div id="history-list" class="history-list"></div>
                 <div id="empty-history" class="empty-state hidden">
@@ -206,10 +222,15 @@
                     <h2>Settings</h2>
                 </div>
                 <div class="settings-list">
+                    <div class="setting-item app-version-item">
+                        <div class="setting-label">App Version</div>
+                        <div class="setting-static" id="app-version-label">ListMow v2.0.1</div>
+                        <span class="setting-desc">Visible build label so updates stop pretending to be invisible.</span>
+                    </div>
                     <div class="setting-item">
-                        <label class="setting-label" for="round-value">Round Value ($)</label>
+                        <label class="setting-label" for="round-value">Legacy Round Value ($)</label>
                         <input type="number" id="round-value" class="setting-input" min="0" step="1" value="260" aria-describedby="round-value-desc">
-                        <span id="round-value-desc" class="setting-desc">Amount saved per completed cycle</span>
+                        <span id="round-value-desc" class="setting-desc">Old cycle payout setting kept for backup compatibility. New earnings use per-property payments.</span>
                     </div>
                     <div class="setting-item">
                         <label class="setting-label" for="current-savings">Current Savings ($)</label>

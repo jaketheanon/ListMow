@@ -271,7 +271,14 @@ These are approved goals, but they should be built incrementally.
 
 ### v2.0.0 - Database Migration Foundation
 
-Status: NOT STARTED.
+Status: COMPLETED.
+
+Completed notes:
+
+- IndexedDB upgraded to schema version 3.
+- Added visits, payments, and reminders stores.
+- Restoring the 2026-10-11 backup successfully recovered the user's data after the live app initially showed zeros.
+- Current visible total should be $1,600 after restoring/migrating the backup.
 
 Goal:
 
@@ -294,6 +301,34 @@ js/cycle.js
 ```
 
 Do not overhaul the UI in this milestone.
+
+
+### v2.0.1 - Visible Cycle Progress and History Navigation Fix
+
+Status: COMPLETED.
+
+Goal:
+
+- Add visible Current Cycle progress on the dashboard.
+- Add visible app version label in Settings.
+- Add Home button on the History screen so the user is not forced to use Android back.
+- Add browser history handling so Android back navigates between app screens instead of immediately closing the installed PWA.
+- Clarify legacy history entries that say `Cycle complete! +$260` by labeling them as old round payout history.
+- Bump service worker cache version so the installed PWA pulls the patch.
+
+Changed files:
+
+```text
+index.html
+styles.css
+js/ui.js
+service-worker.js
+LISTMOW_WORKFLOW.md
+```
+
+Known issue remaining:
+
+- Full Record Visit UI is not implemented yet. That belongs to v2.1.0.
 
 ### v2.1.0 - Record Visit Workflow
 
@@ -438,8 +473,9 @@ After a version is finished:
 As of this file creation:
 
 ```text
-Next task: Start v2.0.0 Database Migration Foundation.
-No v2 code changes have been made yet.
+Next task: Start v2.1.0 Record Visit Workflow.
+v2.0.0 and v2.0.1 are complete.
+Current recovery point: user should export a fresh backup after confirming v2.0.1 loads.
 ```
 
 The latest known user requirements are captured in this file. Future work should continue from here, not from memory, because memory is what got humanity into password reset emails.
