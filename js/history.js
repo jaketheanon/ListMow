@@ -19,6 +19,8 @@ const ACTION_TYPES = {
     EDGED_UNDO: 'edged_undo',
     CYCLE_COMPLETE: 'cycle_complete',
     SAVINGS_ADDED: 'savings_added',
+    PAYMENT_RECORDED: 'payment_recorded',
+    VISIT_RECORDED: 'visit_recorded',
     DATABASE_RESTORED: 'database_restored',
     DATABASE_RESET: 'database_reset',
     SETTINGS_UPDATED: 'settings_updated'
@@ -205,12 +207,56 @@ async function logCycleComplete(savingsAmount) {
             type: ACTION_TYPES.CYCLE_COMPLETE,
             propertyId: null,
             propertyName: null,
-            details: `Cycle complete! +$${savingsAmount}`,
+            details: savingsAmount > 0
+                ? `Cycle complete. Last visit added +$${savingsAmount}`
+                : 'Cycle complete. No fixed round payout added.',
             savingsAmount
         };
         return await addHistoryEntry(entry);
     } catch (error) {
         console.error('Error logging cycle complete:', error);
+        throw error;
+    }
+}
+
+
+// ============================================
+// Log Payment Recorded
+// ============================================
+
+async function logPaymentRecorded(propertyId, propertyName, amount) {
+    try {
+        const entry = {
+            type: ACTION_TYPES.PAYMENT_RECORDED,
+            propertyId,
+            propertyName,
+            details: `Payment recorded: ${propertyName} +$${amount}`,
+            amount
+        };
+        return await addHistoryEntry(entry);
+    } catch (error) {
+        console.error('Error logging payment recorded:', error);
+        throw error;
+    }
+}
+
+// ============================================
+// Log Visit Recorded
+// ============================================
+
+async function logVisitRecorded(propertyId, propertyName, work = []) {
+    try {
+        const label = Array.isArray(work) && work.length > 0 ? work.join(', ') : 'visit';
+        const entry = {
+            type: ACTION_TYPES.VISIT_RECORDED,
+            propertyId,
+            propertyName,
+            details: `Visit recorded: ${propertyName} (${label})`,
+            work
+        };
+        return await addHistoryEntry(entry);
+    } catch (error) {
+        console.error('Error logging visit recorded:', error);
         throw error;
     }
 }

@@ -152,10 +152,34 @@ async function createProperty(propertyData) {
         address: addressValidation.value,
         notes: notesValidation.value,
         interval: intervalValidation.value,
+        mowInterval: intervalValidation.value,
+        edgeInterval: intervalValidation.value,
         lastMowed: dateValidation.value,
         lastEdged: null,
+        lastInspection: null,
         mowedThisCycle: dateValidation.value !== null,
-        archived: false
+        cycleCompleted: dateValidation.value !== null,
+        cyclePaymentRecorded: false,
+        archived: false,
+        status: 'active',
+        paymentPerVisit: getDefaultPaymentPerVisit({
+            name: nameValidation.value,
+            address: addressValidation.value
+        }),
+        lifetimeEarned: 0,
+        visitHistory: [],
+        reminders: [],
+        quickAccess: {
+            lockbox: '',
+            gateCode: '',
+            alarmCode: '',
+            keyLocation: ''
+        },
+        gps: {
+            lat: null,
+            lng: null,
+            radiusFeet: 200
+        }
     };
 
     return await addProperty(property);
@@ -226,6 +250,35 @@ async function updatePropertyData(id, propertyData) {
         }
         existing.lastMowed = dateValidation.value;
         existing.mowedThisCycle = dateValidation.value !== null;
+        existing.cycleCompleted = dateValidation.value !== null;
+        if (dateValidation.value === null) {
+            existing.cyclePaymentRecorded = false;
+        }
+    }
+
+    if (propertyData.paymentPerVisit !== undefined) {
+        const amount = parseFloat(propertyData.paymentPerVisit);
+        if (isNaN(amount) || amount < 0) {
+            throw new Error('Payment per visit must be a positive number');
+        }
+        if (amount > 10000) {
+            throw new Error('Payment per visit is too large');
+        }
+        existing.paymentPerVisit = amount;
+    }
+
+    if (propertyData.status !== undefined) {
+        const allowedStatuses = ['active', 'paused', 'sold'];
+        if (!allowedStatuses.includes(propertyData.status)) {
+            throw new Error('Invalid property status');
+        }
+        existing.status = propertyData.status;
+        existing.archived = propertyData.status === 'sold';
+        if (propertyData.status !== 'active') {
+            existing.mowedThisCycle = false;
+            existing.cycleCompleted = false;
+            existing.cyclePaymentRecorded = false;
+        }
     }
 
     return await updateProperty(existing);
@@ -366,12 +419,25 @@ async function markPropertyMowed(id) {
     }
 
     const previousLastMowed = property.lastMowed;
+    const previousMowedThisCycle = Boolean(property.mowedThisCycle);
+    const previousCycleCompleted = Boolean(property.cycleCompleted);
+    const previousCyclePaymentRecorded = Boolean(property.cyclePaymentRecorded);
+    const previousLifetimeEarned = property.lifetimeEarned || 0;
+
     property.lastMowed = new Date().toISOString();
     property.mowedThisCycle = true;
+    property.cycleCompleted = true;
 
     await updateProperty(property);
 
-    return { property, previousLastMowed };
+    return {
+        property,
+        previousLastMowed,
+        previousMowedThisCycle,
+        previousCycleCompleted,
+        previousCyclePaymentRecorded,
+        previousLifetimeEarned
+    };
 }
 
 async function markPropertyEdged(id) {
@@ -395,7 +461,10 @@ async function archiveProperty(id) {
     }
 
     property.archived = true;
+    property.status = 'sold';
     property.mowedThisCycle = false;
+    property.cycleCompleted = false;
+    property.cyclePaymentRecorded = false;
 
     await updateProperty(property);
 
@@ -409,6 +478,7 @@ async function restoreProperty(id) {
     }
 
     property.archived = false;
+    property.status = 'active';
 
     await updateProperty(property);
 
@@ -458,8 +528,8 @@ async function getQueueStatistics() {
 
 async function getPropertyStatistics() {
     const allProperties = await getAllProperties();
-    const activeProperties = allProperties.filter(p => !p.archived);
-    const archivedProperties = allProperties.filter(p => p.archived);
+    const activeProperties = allProperties.filter(p => p.status === 'active' && !p.archived);
+    const archivedProperties = allProperties.filter(p => p.archived || p.status === 'sold');
 
     // Find most overdue
     let mostOverdue = null;

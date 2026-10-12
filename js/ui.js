@@ -506,8 +506,9 @@ async function handleMowToday() {
             showCycleCompleteAnimation(savingsAmount);
             await refreshHomeScreen();
         } else {
-            showToast(`${property.name} marked as mowed`, async () => {
-                await undoMowed(property.id, previousLastMowed);
+            const paymentMessage = result.paymentApplied ? ` (+$${result.paymentAmount})` : '';
+            showToast(`${property.name} marked as mowed${paymentMessage}`, async () => {
+                await undoMowed(property.id, previousLastMowed, result);
                 showToast('Mowed action undone');
                 await refreshCurrentScreen();
             });
@@ -534,7 +535,7 @@ async function handleEdgeToday() {
         const { property, previousLastEdged } = result;
 
         showToast(`${property.name} marked as edged`, async () => {
-            await undoEdged(property.id, previousLastEdged);
+            await undoEdged(property.id, previousLastEdged, result);
             showToast('Edged action undone');
             await refreshCurrentScreen();
         });
@@ -841,7 +842,7 @@ function showCycleCompleteAnimation(savingsAmount) {
     const cycleComplete = document.getElementById('cycle-complete');
     const cycleSavings = document.getElementById('cycle-savings');
 
-    cycleSavings.textContent = `+$${savingsAmount}`;
+    cycleSavings.textContent = savingsAmount > 0 ? `+$${savingsAmount}` : 'Cycle Complete';
     cycleComplete.classList.remove('hidden');
 
     setTimeout(() => {

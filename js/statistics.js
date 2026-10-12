@@ -300,8 +300,8 @@ async function getQueueStatistics() {
 async function getPropertyStatistics() {
     try {
         const allProperties = await getAllProperties();
-        const activeProperties = allProperties.filter(p => !p.archived);
-        const archivedProperties = allProperties.filter(p => p.archived);
+        const activeProperties = allProperties.filter(p => p.status === 'active' && !p.archived);
+        const archivedProperties = allProperties.filter(p => p.archived || p.status === 'sold');
 
         // Find most overdue
         let mostOverdue = null;
