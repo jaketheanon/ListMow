@@ -7,6 +7,8 @@
 // State
 // ============================================
 
+const APP_VERSION = 'v2.0.1';
+
 let currentScreen = 'home';
 let currentPropertyId = null;
 let showingArchived = false;
@@ -18,6 +20,7 @@ let toastUndoCallback = null;
 // ============================================
 
 function initUI() {
+    setupBrowserHistory();
     setupNavigation();
     setupPropertyModal();
     setupPropertyDetailModal();
@@ -31,6 +34,19 @@ function initUI() {
 // Navigation
 // ============================================
 
+function setupBrowserHistory() {
+    if (!window.history || !window.history.replaceState) {
+        return;
+    }
+
+    window.history.replaceState({ listmow: true, screen: currentScreen }, '', window.location.href);
+
+    window.addEventListener('popstate', (event) => {
+        const screen = event.state && event.state.screen ? event.state.screen : 'home';
+        navigateTo(screen, { pushHistory: false });
+    });
+}
+
 function setupNavigation() {
     const navItems = document.querySelectorAll('.nav-item');
     
@@ -40,9 +56,17 @@ function setupNavigation() {
             navigateTo(screen);
         });
     });
+
+    const historyHomeBtn = document.getElementById('history-home-btn');
+    if (historyHomeBtn) {
+        historyHomeBtn.addEventListener('click', () => navigateTo('home'));
+    }
 }
 
-function navigateTo(screen) {
+function navigateTo(screen, options = {}) {
+    const { pushHistory = true } = options;
+    const previousScreen = currentScreen;
+
     // Update nav items
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
@@ -60,6 +84,10 @@ function navigateTo(screen) {
     document.getElementById(`${screen}-screen`).classList.add('active');
 
     currentScreen = screen;
+
+    if (pushHistory && screen !== previousScreen && window.history && window.history.pushState) {
+        window.history.pushState({ listmow: true, screen }, '', window.location.href);
+    }
 
     // Refresh screen content
     refreshCurrentScreen();
@@ -100,6 +128,23 @@ async function refreshHomeScreen() {
         document.getElementById('savings-value').textContent = `$${settings.savings.toFixed(2)}`;
         document.getElementById('cycles-value').textContent = settings.completedCycles;
         document.getElementById('active-properties-value').textContent = activeProperties.length;
+
+        const completedThisCycle = activeProperties.filter(property => property.mowedThisCycle || property.cycleCompleted).length;
+        const totalThisCycle = activeProperties.length;
+        const remainingThisCycle = activeProperties
+            .filter(property => !(property.mowedThisCycle || property.cycleCompleted))
+            .map(property => property.name);
+
+        const cycleProgressValue = document.getElementById('cycle-progress-value');
+        const cycleProgressSubtext = document.getElementById('cycle-progress-subtext');
+        if (cycleProgressValue) {
+            cycleProgressValue.textContent = `${completedThisCycle} / ${totalThisCycle}`;
+        }
+        if (cycleProgressSubtext) {
+            cycleProgressSubtext.textContent = remainingThisCycle.length > 0
+                ? `${remainingThisCycle.length} remaining: ${remainingThisCycle.join(', ')}`
+                : 'Cycle complete';
+        }
 
         // Update queue summary
         document.getElementById('queue-overdue').textContent = queueStats.overdue;
@@ -210,6 +255,11 @@ async function refreshSettingsScreen() {
     try {
         const settings = await getCurrentSettings();
         
+        const versionLabel = document.getElementById('app-version-label');
+        if (versionLabel) {
+            versionLabel.textContent = `ListMow ${APP_VERSION}`;
+        }
+
         document.getElementById('round-value').value = settings.roundValue;
         document.getElementById('current-savings').value = settings.savings;
         document.getElementById('completed-cycles').value = settings.completedCycles;
@@ -259,18 +309,29 @@ function createPropertyCard(property) {
 // History Item Creation
 // ============================================
 
+function getHistoryDisplayDetails(entry) {
+    const details = String(entry.details || '');
+
+    if (entry.type === 'cycle_complete' && details.includes('+$260')) {
+        return details.replace('Cycle complete!', 'Legacy cycle complete:') + ' (old round payout)';
+    }
+
+    return details;
+}
+
 function createHistoryItem(entry) {
     const isCycleComplete = entry.type === 'cycle_complete';
     const isUndo = entry.type.includes('undo');
+    const details = getHistoryDisplayDetails(entry);
 
     return `
         <div class="history-item">
             <div class="history-header">
-                <span class="history-property">${entry.propertyName || 'System'}</span>
-                <span class="history-time">${entry.timeAgo}</span>
+                <span class="history-property">${escapeHtml(entry.propertyName || 'System')}</span>
+                <span class="history-time">${escapeHtml(entry.timeAgo)}</span>
             </div>
             <div class="history-action ${isCycleComplete ? 'cycle-complete' : ''} ${isUndo ? 'undo' : ''}">
-                ${entry.details}
+                ${escapeHtml(details)}
             </div>
         </div>
     `;
