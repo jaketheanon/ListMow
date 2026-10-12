@@ -443,3 +443,81 @@ No v2 code changes have been made yet.
 ```
 
 The latest known user requirements are captured in this file. Future work should continue from here, not from memory, because memory is what got humanity into password reset emails.
+
+---
+
+## Progress Update - v2.0.0 Database Migration Foundation
+
+Status: COMPLETE IN LOCAL PATCH ZIP. Needs user upload/deploy to GitHub.
+
+Completed work:
+
+- Bumped IndexedDB from version 2 to version 3.
+- Added new object stores:
+  - visits
+  - payments
+  - reminders
+- Added schema normalization for properties and settings.
+- Added per-property payment defaults:
+  - Home: $0
+  - Scott: $60
+  - 2663 Pebble Bow: $60
+  - Timberline: $80
+  - all others: $40
+- Added property status foundation:
+  - active
+  - paused
+  - sold
+- Migrates old active/archived data into the new status model.
+- Migrates current unfinished cycle earnings into the displayed savings total.
+- For the current backup, migration target is:
+  - base savings: $1340
+  - current unfinished-cycle earnings: $260
+  - displayed total after migration: $1600
+- Replaces fixed round payout behavior with per-property payment behavior.
+- Completing a cycle no longer adds the legacy $260 round value.
+- Completing a cycle now increments completed cycle count and resets cycle flags only.
+- Existing Mowed Today button now records a v2 visit and applies payment if payment has not already been recorded for that property in the current cycle.
+- Existing Edged Today button now records an unpaid v2 visit.
+- Backup export now includes visits, payments, and reminders.
+- Restore accepts old v2 backups and migrates them to the new v3 schema.
+- Service worker cache version updated so changed JS files are fetched after deploy.
+
+Changed files:
+
+```text
+js/database.js
+js/settings.js
+js/properties.js
+js/history.js
+js/cycle.js
+js/statistics.js
+js/ui.js
+service-worker.js
+LISTMOW_WORKFLOW.md
+```
+
+Known limitations remaining after v2.0.0:
+
+- UI labels still say Savings / Round Value in some places.
+- There is not yet a full Record Visit modal.
+- Payment amounts are not yet editable from the UI.
+- Paused/Sold status controls are not yet exposed in the UI.
+- Timeline/payment ledger screens are not yet exposed in the UI.
+- GPS, directions, and reminders are not yet implemented in the UI.
+
+Next task:
+
+```text
+v2.1.0 - Record Visit Workflow
+```
+
+Recommended test after deploying v2.0.0:
+
+1. Open the app after deploy.
+2. Confirm displayed savings becomes $1600 after migration.
+3. Confirm current cycle still shows 6 / 8 complete.
+4. Mark Hallie mowed and confirm total becomes $1640.
+5. Mark Scott mowed and confirm total becomes $1700.
+6. Confirm cycle count increments and the current cycle resets after Scott.
+7. Export a backup and confirm it includes visits and payments.
