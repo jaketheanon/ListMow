@@ -7,7 +7,7 @@
 // State
 // ============================================
 
-const APP_VERSION = 'v2.0.1';
+const APP_VERSION = 'v2.1.0';
 
 let currentScreen = 'home';
 let currentPropertyId = null;
@@ -24,6 +24,7 @@ function initUI() {
     setupNavigation();
     setupPropertyModal();
     setupPropertyDetailModal();
+    setupVisitModal();
     setupSearch();
     setupSettings();
     setupHistory();
@@ -493,8 +494,21 @@ function setupPropertyDetailModal() {
     });
 
     // Setup action buttons
-    document.getElementById('mow-today-btn').addEventListener('click', handleMowToday);
-    document.getElementById('edge-today-btn').addEventListener('click', handleEdgeToday);
+    const recordVisitBtn = document.getElementById('record-visit-btn');
+    if (recordVisitBtn) {
+        recordVisitBtn.addEventListener('click', openRecordVisitModal);
+    }
+
+    const mowTodayBtn = document.getElementById('mow-today-btn');
+    if (mowTodayBtn) {
+        mowTodayBtn.addEventListener('click', handleMowToday);
+    }
+
+    const edgeTodayBtn = document.getElementById('edge-today-btn');
+    if (edgeTodayBtn) {
+        edgeTodayBtn.addEventListener('click', handleEdgeToday);
+    }
+
     document.getElementById('edit-property-btn').addEventListener('click', handleEditProperty);
     document.getElementById('archive-property-btn').addEventListener('click', handleArchiveProperty);
     document.getElementById('delete-property-btn').addEventListener('click', handleDeleteProperty);
@@ -520,6 +534,14 @@ async function openPropertyDetailModal(propertyId) {
         document.getElementById('detail-days-mowed').textContent = daysSinceMowed !== null ? daysSinceMowed : 'Never';
         document.getElementById('detail-days-edged').textContent = daysSinceEdged !== null ? daysSinceEdged : 'Never';
         document.getElementById('detail-interval').textContent = `${property.interval} days`;
+        const detailPayment = document.getElementById('detail-payment');
+        if (detailPayment) {
+            detailPayment.textContent = `$${Number(property.paymentPerVisit || 0).toFixed(0)} per paid visit`;
+        }
+        const detailStatus = document.getElementById('detail-status');
+        if (detailStatus) {
+            detailStatus.textContent = property.status || (property.archived ? 'sold' : 'active');
+        }
         document.getElementById('detail-last-mowed-date').textContent = formatDate(property.lastMowed);
         document.getElementById('detail-last-edged-date').textContent = formatDate(property.lastEdged);
         document.getElementById('detail-notes').textContent = property.notes || '-';
@@ -547,6 +569,245 @@ async function openPropertyDetailModal(propertyId) {
     } catch (error) {
         console.error('Error opening property detail modal:', error);
         showToast('Error loading property');
+    }
+}
+
+
+// ============================================
+// Record Visit Modal
+// ============================================
+
+function setupVisitModal() {
+    const modal = document.getElementById('visit-modal');
+    if (!modal) return;
+
+    const overlay = modal.querySelector('.modal-overlay');
+    const closeBtn = document.getElementById('close-visit-modal');
+    const cancelBtn = document.getElementById('cancel-visit-modal');
+    const form = document.getElementById('visit-form');
+    const dateOption = document.getElementById('visit-date-option');
+    const paidCheckbox = document.getElementById('visit-paid');
+    const paymentAmount = document.getElementById('visit-payment-amount');
+    const noWorkCheckbox = document.getElementById('visit-work-none');
+    const workCheckboxes = [
+        document.getElementById('visit-work-mowed'),
+        document.getElementById('visit-work-edged'),
+        document.getElementById('visit-work-weed'),
+        document.getElementById('visit-work-blower')
+    ].filter(Boolean);
+
+    const closeVisit = () => closeVisitModal();
+    overlay.addEventListener('click', closeVisit);
+    closeBtn.addEventListener('click', closeVisit);
+    cancelBtn.addEventListener('click', closeVisit);
+    form.addEventListener('submit', handleVisitFormSubmit);
+
+    dateOption.addEventListener('change', () => {
+        document.getElementById('visit-custom-date-group').classList.toggle('hidden', dateOption.value !== 'custom');
+    });
+
+    paidCheckbox.addEventListener('change', async () => {
+        const property = currentPropertyId ? await getProperty(currentPropertyId) : null;
+        if (paidCheckbox.checked) {
+            if (Number(paymentAmount.value || 0) <= 0 && property) {
+                paymentAmount.value = Number(property.paymentPerVisit || 0);
+            }
+            paymentAmount.disabled = false;
+        } else {
+            paymentAmount.value = 0;
+            paymentAmount.disabled = true;
+        }
+    });
+
+    if (noWorkCheckbox) {
+        noWorkCheckbox.addEventListener('change', () => {
+            if (noWorkCheckbox.checked) {
+                workCheckboxes.forEach(checkbox => { checkbox.checked = false; });
+                paidCheckbox.checked = false;
+                paymentAmount.value = 0;
+                paymentAmount.disabled = true;
+            }
+        });
+    }
+
+    workCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked && noWorkCheckbox) {
+                noWorkCheckbox.checked = false;
+            }
+        });
+    });
+}
+
+function closeVisitModal() {
+    const modal = document.getElementById('visit-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function localDateInputValue(date = new Date()) {
+    const copy = new Date(date);
+    const offset = copy.getTimezoneOffset();
+    copy.setMinutes(copy.getMinutes() - offset);
+    return copy.toISOString().split('T')[0];
+}
+
+function visitDateFromForm() {
+    const option = document.getElementById('visit-date-option').value;
+    const date = new Date();
+
+    if (option === 'yesterday') {
+        date.setDate(date.getDate() - 1);
+        return date.toISOString();
+    }
+
+    if (option === 'custom') {
+        const custom = document.getElementById('visit-custom-date').value;
+        if (!custom) {
+            throw new Error('Choose a visit date');
+        }
+        const customDate = new Date(`${custom}T12:00:00`);
+        if (customDate > new Date()) {
+            throw new Error('Visit date cannot be in the future');
+        }
+        return customDate.toISOString();
+    }
+
+    return date.toISOString();
+}
+
+function selectedVisitWork() {
+    const fields = [
+        'visit-work-mowed',
+        'visit-work-edged',
+        'visit-work-weed',
+        'visit-work-blower',
+        'visit-work-check',
+        'visit-work-none'
+    ];
+
+    return fields
+        .map(id => document.getElementById(id))
+        .filter(field => field && field.checked)
+        .map(field => field.value);
+}
+
+function visitWorkToastLabel(work = []) {
+    const labels = {
+        mowed: 'mowed',
+        edged: 'edged',
+        weed_eating: 'weed eating',
+        blower_cleanup: 'blower cleanup',
+        property_check: 'property check',
+        no_work_needed: 'no work needed'
+    };
+    return work.map(item => labels[item] || item).join(', ');
+}
+
+async function openRecordVisitModal() {
+    if (!currentPropertyId) return;
+
+    try {
+        const property = await getProperty(currentPropertyId);
+        if (!property) {
+            showToast('Property not found');
+            return;
+        }
+
+        const detailModal = document.getElementById('property-detail-modal');
+        if (detailModal) {
+            detailModal.classList.add('hidden');
+        }
+
+        document.getElementById('visit-property-id').value = property.id;
+        document.getElementById('visit-property-name').textContent = property.name;
+        document.getElementById('visit-property-meta').textContent = `Payment: $${Number(property.paymentPerVisit || 0).toFixed(0)} per paid visit`;
+
+        const duplicateWarning = document.getElementById('visit-duplicate-warning');
+        duplicateWarning.classList.toggle('hidden', !property.cyclePaymentRecorded);
+
+        document.getElementById('visit-work-mowed').checked = true;
+        document.getElementById('visit-work-edged').checked = false;
+        document.getElementById('visit-work-weed').checked = false;
+        document.getElementById('visit-work-blower').checked = false;
+        document.getElementById('visit-work-check').checked = false;
+        document.getElementById('visit-work-none').checked = false;
+        document.getElementById('visit-counts-cycle').checked = true;
+        document.getElementById('visit-date-option').value = 'today';
+        document.getElementById('visit-custom-date').value = localDateInputValue();
+        document.getElementById('visit-custom-date-group').classList.add('hidden');
+        document.getElementById('visit-notes').value = '';
+
+        const paidCheckbox = document.getElementById('visit-paid');
+        const paymentAmount = document.getElementById('visit-payment-amount');
+        const defaultAmount = Number(property.paymentPerVisit || 0);
+        const shouldDefaultPaid = defaultAmount > 0 && !property.cyclePaymentRecorded;
+        paidCheckbox.checked = shouldDefaultPaid;
+        paymentAmount.value = shouldDefaultPaid ? defaultAmount : 0;
+        paymentAmount.disabled = !shouldDefaultPaid;
+
+        document.getElementById('visit-modal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error opening record visit modal:', error);
+        showToast(error.message || 'Error opening visit form');
+    }
+}
+
+async function handleVisitFormSubmit(event) {
+    event.preventDefault();
+
+    if (!currentPropertyId) return;
+
+    try {
+        const property = await getProperty(currentPropertyId);
+        if (!property) {
+            throw new Error('Property not found');
+        }
+
+        const work = selectedVisitWork();
+        if (work.length === 0) {
+            throw new Error('Choose at least one thing that was done');
+        }
+
+        const paid = document.getElementById('visit-paid').checked;
+        const amount = paid ? parseFloat(document.getElementById('visit-payment-amount').value || '0') : 0;
+        const countsForCycle = document.getElementById('visit-counts-cycle').checked;
+        const notes = document.getElementById('visit-notes').value.trim();
+
+        let forceDuplicatePayment = false;
+        if (paid && amount > 0 && property.cyclePaymentRecorded) {
+            forceDuplicatePayment = confirm(`${property.name} already has payment recorded for this cycle. Record an additional paid visit anyway?`);
+            if (!forceDuplicatePayment) {
+                return;
+            }
+        }
+
+        const result = await handlePropertyVisit(currentPropertyId, {
+            work,
+            date: visitDateFromForm(),
+            paid,
+            amount,
+            notes,
+            countsForCycle,
+            forceDuplicatePayment
+        });
+
+        closeVisitModal();
+        currentPropertyId = null;
+
+        const workLabel = visitWorkToastLabel(work);
+        const paymentMessage = result.paymentApplied ? ` (+$${result.paymentAmount})` : '';
+        showToast(`Visit saved: ${property.name} (${workLabel})${paymentMessage}`);
+
+        if (result.cycleComplete) {
+            showCycleCompleteAnimation(result.paymentAmount || 0);
+        }
+
+        await refreshCurrentScreen();
+    } catch (error) {
+        console.error('Error saving visit:', error);
+        showToast(error.message || 'Error saving visit');
     }
 }
 

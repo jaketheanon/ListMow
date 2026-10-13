@@ -97,6 +97,153 @@ async function recordMowedPayment(property, visit) {
     };
 }
 
+function normalizeVisitWork(work = []) {
+    const allowed = [
+        'mowed',
+        'edged',
+        'weed_eating',
+        'blower_cleanup',
+        'property_check',
+        'no_work_needed'
+    ];
+    const values = Array.isArray(work) ? work : [];
+    return [...new Set(values.filter(item => allowed.includes(item)))];
+}
+
+function getVisitWorkLabel(work = []) {
+    const labels = {
+        mowed: 'mowed',
+        edged: 'edged',
+        weed_eating: 'weed eating',
+        blower_cleanup: 'blower cleanup',
+        property_check: 'property check',
+        no_work_needed: 'no work needed'
+    };
+    return normalizeVisitWork(work).map(item => labels[item] || item).join(', ');
+}
+
+// ============================================
+// Handle General Property Visit
+// ============================================
+
+async function handlePropertyVisit(propertyId, visitData = {}) {
+    try {
+        if (cycleInProgress) {
+            throw new Error('Cycle operation in progress, please wait');
+        }
+
+        const property = await getProperty(propertyId);
+        if (!property) {
+            throw new Error('Property not found');
+        }
+
+        const work = normalizeVisitWork(visitData.work);
+        if (work.length === 0) {
+            throw new Error('Choose at least one visit action');
+        }
+
+        const settings = await getCurrentSettings();
+        const visitDate = visitData.date || new Date().toISOString();
+        const paid = Boolean(visitData.paid);
+        const amount = paid ? Number(visitData.amount || 0) : 0;
+        const countsForCycle = visitData.countsForCycle !== false;
+        const forceDuplicatePayment = Boolean(visitData.forceDuplicatePayment);
+
+        if (paid && amount <= 0) {
+            throw new Error('Paid visits need an amount greater than zero');
+        }
+
+        if (paid && amount > 0 && property.cyclePaymentRecorded && !forceDuplicatePayment) {
+            throw new Error('Payment already recorded for this property in the current cycle');
+        }
+
+        const previousState = {
+            lastMowed: property.lastMowed || null,
+            lastEdged: property.lastEdged || null,
+            lastInspection: property.lastInspection || null,
+            mowedThisCycle: Boolean(property.mowedThisCycle),
+            cycleCompleted: Boolean(property.cycleCompleted),
+            cyclePaymentRecorded: Boolean(property.cyclePaymentRecorded),
+            lifetimeEarned: Number(property.lifetimeEarned || 0)
+        };
+
+        if (work.includes('mowed')) {
+            property.lastMowed = visitDate;
+        }
+        if (work.includes('edged')) {
+            property.lastEdged = visitDate;
+        }
+        if (work.includes('property_check') || work.includes('no_work_needed')) {
+            property.lastInspection = visitDate;
+        }
+        if (countsForCycle) {
+            property.mowedThisCycle = true;
+            property.cycleCompleted = true;
+            property.currentCycleNumber = settings.currentCycleNumber;
+        }
+
+        const visit = await addVisit({
+            propertyId: property.id,
+            propertyName: property.name,
+            date: visitDate,
+            work,
+            paid,
+            amount,
+            notes: visitData.notes || '',
+            cycleNumber: settings.currentCycleNumber
+        });
+
+        let payment = null;
+        let paymentApplied = false;
+        if (paid && amount > 0) {
+            payment = await addPayment({
+                visitId: visit.id,
+                propertyId: property.id,
+                propertyName: property.name,
+                date: visitDate,
+                amount,
+                cycleNumber: settings.currentCycleNumber,
+                reason: `Paid visit: ${getVisitWorkLabel(work)}`
+            });
+            await recordPaymentToEarnings(amount);
+            await addToCurrentCycleEarnings(amount);
+            await logPaymentRecorded(property.id, property.name, amount);
+            property.cyclePaymentRecorded = true;
+            property.lifetimeEarned = Number(property.lifetimeEarned || 0) + amount;
+            paymentApplied = true;
+        }
+
+        await updateProperty(property);
+        await logVisitRecorded(property.id, property.name, work);
+
+        const isCycleComplete = await checkCycleComplete();
+        if (isCycleComplete) {
+            cycleInProgress = true;
+            try {
+                await incrementCompletedCycles();
+                await resetCycle();
+                await logCycleComplete(0);
+            } finally {
+                cycleInProgress = false;
+            }
+        }
+
+        return {
+            property,
+            visit,
+            payment,
+            paymentApplied,
+            paymentAmount: paymentApplied ? amount : 0,
+            cycleComplete: isCycleComplete,
+            previousState
+        };
+    } catch (error) {
+        console.error('Error handling property visit:', error);
+        cycleInProgress = false;
+        throw error;
+    }
+}
+
 // ============================================
 // Handle Property Mowed
 // ============================================
