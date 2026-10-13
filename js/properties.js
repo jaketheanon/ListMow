@@ -454,35 +454,76 @@ async function markPropertyEdged(id) {
     return { property, previousLastEdged };
 }
 
-async function archiveProperty(id) {
+function normalizePropertyStatus(status) {
+    const value = String(status || '').toLowerCase();
+    return ['active', 'paused', 'sold'].includes(value) ? value : 'active';
+}
+
+function getPropertyStatus(property = {}) {
+    if (property.status) {
+        return normalizePropertyStatus(property.status);
+    }
+    return property.archived ? 'sold' : 'active';
+}
+
+function getPropertyStatusLabel(status) {
+    const labels = {
+        active: 'Active',
+        paused: 'Paused',
+        sold: 'Sold'
+    };
+    return labels[normalizePropertyStatus(status)] || 'Active';
+}
+
+async function setPropertyStatus(id, status) {
     const property = await getProperty(id);
     if (!property) {
         throw new Error('Property not found');
     }
 
-    property.archived = true;
-    property.status = 'sold';
-    property.mowedThisCycle = false;
-    property.cycleCompleted = false;
-    property.cyclePaymentRecorded = false;
+    const newStatus = normalizePropertyStatus(status);
+    const previousStatus = getPropertyStatus(property);
+
+    property.status = newStatus;
+    property.archived = newStatus === 'sold';
+
+    // Paused and sold properties leave the active queue and current cycle.
+    if (newStatus !== 'active') {
+        property.mowedThisCycle = false;
+        property.cycleCompleted = false;
+        property.cyclePaymentRecorded = false;
+    }
 
     await updateProperty(property);
 
-    return property;
+    return {
+        property,
+        previousStatus,
+        newStatus
+    };
+}
+
+async function activateProperty(id) {
+    return await setPropertyStatus(id, 'active');
+}
+
+async function pauseProperty(id) {
+    return await setPropertyStatus(id, 'paused');
+}
+
+async function markPropertySold(id) {
+    return await setPropertyStatus(id, 'sold');
+}
+
+// Backward-compatible helpers. Old archive means sold; old restore means active.
+async function archiveProperty(id) {
+    const result = await markPropertySold(id);
+    return result.property;
 }
 
 async function restoreProperty(id) {
-    const property = await getProperty(id);
-    if (!property) {
-        throw new Error('Property not found');
-    }
-
-    property.archived = false;
-    property.status = 'active';
-
-    await updateProperty(property);
-
-    return property;
+    const result = await activateProperty(id);
+    return result.property;
 }
 
 // ============================================

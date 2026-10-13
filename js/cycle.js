@@ -137,6 +137,13 @@ async function handlePropertyVisit(propertyId, visitData = {}) {
             throw new Error('Property not found');
         }
 
+        const propertyStatus = typeof getPropertyStatus === 'function'
+            ? getPropertyStatus(property)
+            : (property.archived ? 'sold' : (property.status || 'active'));
+        if (propertyStatus === 'sold') {
+            throw new Error('Sold properties are history-only. Set Active before recording new work.');
+        }
+
         const work = normalizeVisitWork(visitData.work);
         if (work.length === 0) {
             throw new Error('Choose at least one visit action');
@@ -146,14 +153,14 @@ async function handlePropertyVisit(propertyId, visitData = {}) {
         const visitDate = visitData.date || new Date().toISOString();
         const paid = Boolean(visitData.paid);
         const amount = paid ? Number(visitData.amount || 0) : 0;
-        const countsForCycle = visitData.countsForCycle !== false;
+        const countsForCycle = propertyStatus === 'active' && visitData.countsForCycle !== false;
         const forceDuplicatePayment = Boolean(visitData.forceDuplicatePayment);
 
         if (paid && amount <= 0) {
             throw new Error('Paid visits need an amount greater than zero');
         }
 
-        if (paid && amount > 0 && property.cyclePaymentRecorded && !forceDuplicatePayment) {
+        if (propertyStatus === 'active' && paid && amount > 0 && property.cyclePaymentRecorded && !forceDuplicatePayment) {
             throw new Error('Payment already recorded for this property in the current cycle');
         }
 
@@ -190,7 +197,8 @@ async function handlePropertyVisit(propertyId, visitData = {}) {
             paid,
             amount,
             notes: visitData.notes || '',
-            cycleNumber: settings.currentCycleNumber
+            cycleNumber: settings.currentCycleNumber,
+            propertyStatus
         });
 
         let payment = null;

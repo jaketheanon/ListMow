@@ -13,6 +13,7 @@ const ACTION_TYPES = {
     PROPERTY_ARCHIVED: 'property_archived',
     PROPERTY_DELETED: 'property_deleted',
     PROPERTY_RESTORED: 'property_restored',
+    PROPERTY_STATUS_CHANGED: 'property_status_changed',
     MOWED: 'mowed',
     EDGED: 'edged',
     MOWED_UNDO: 'mowed_undo',
@@ -117,6 +118,27 @@ async function logPropertyRestored(propertyId, propertyName) {
         return await addHistoryEntry(entry);
     } catch (error) {
         console.error('Error logging property restored:', error);
+        throw error;
+    }
+}
+
+// ============================================
+// Log Property Status Changed
+// ============================================
+
+async function logPropertyStatusChanged(propertyId, propertyName, previousStatus, newStatus) {
+    try {
+        const entry = {
+            type: ACTION_TYPES.PROPERTY_STATUS_CHANGED,
+            propertyId,
+            propertyName,
+            details: `Status changed: ${propertyName} ${previousStatus} → ${newStatus}`,
+            previousStatus,
+            newStatus
+        };
+        return await addHistoryEntry(entry);
+    } catch (error) {
+        console.error('Error logging property status change:', error);
         throw error;
     }
 }

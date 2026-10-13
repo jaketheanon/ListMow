@@ -7,11 +7,12 @@
 // State
 // ============================================
 
-const APP_VERSION = 'v2.1.0';
+const APP_VERSION = 'v2.2.0';
 
 let currentScreen = 'home';
 let currentPropertyId = null;
 let showingArchived = false;
+let propertyStatusFilter = 'active';
 let toastTimeout = null;
 let toastUndoCallback = null;
 
@@ -114,6 +115,54 @@ function refreshCurrentScreen() {
     }
 }
 
+function getStatusLabel(status) {
+    if (typeof getPropertyStatusLabel === 'function') {
+        return getPropertyStatusLabel(status);
+    }
+    const labels = { active: 'Active', paused: 'Paused', sold: 'Sold' };
+    return labels[status] || 'Active';
+}
+
+function getStatusIcon(status) {
+    const icons = {
+        active: '<path d="M5 13l4 4L19 7"/>',
+        paused: '<path d="M10 4H6v16h4V4zM18 4h-4v16h4V4z"/>',
+        sold: '<path d="M5 8l6 6M19 8l-6 6M5 12h14"/>'
+    };
+    return icons[status] || icons.active;
+}
+
+function statusFilterOrder() {
+    return ['active', 'paused', 'sold'];
+}
+
+function cyclePropertyStatusFilter() {
+    const order = statusFilterOrder();
+    const currentIndex = order.indexOf(propertyStatusFilter);
+    propertyStatusFilter = order[(currentIndex + 1) % order.length];
+    showingArchived = propertyStatusFilter === 'sold';
+}
+
+async function getPropertiesForStatusFilter() {
+    switch (propertyStatusFilter) {
+        case 'paused':
+            return await getPausedProperties();
+        case 'sold':
+            return await getArchivedProperties();
+        case 'active':
+        default:
+            return await getActiveProperties();
+    }
+}
+
+function updatePropertyFilterButton() {
+    const filterBtn = document.getElementById('show-archived-btn');
+    if (!filterBtn) return;
+    const label = getStatusLabel(propertyStatusFilter);
+    filterBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${getStatusIcon(propertyStatusFilter)}</svg> ${label}`;
+    filterBtn.setAttribute('aria-label', `Showing ${label.toLowerCase()} properties. Tap to change status filter.`);
+}
+
 // ============================================
 // Home Screen
 // ============================================
@@ -175,10 +224,7 @@ async function refreshHomeScreen() {
 
 async function refreshPropertiesScreen() {
     try {
-        const properties = showingArchived 
-            ? await getArchivedProperties()
-            : await getActiveProperties();
-
+        const properties = await getPropertiesForStatusFilter();
         const sorted = sortPropertiesByPriority(properties);
         const container = document.getElementById('properties-list');
         const emptyState = document.getElementById('empty-properties');
@@ -191,11 +237,7 @@ async function refreshPropertiesScreen() {
             container.innerHTML = sorted.map(property => createPropertyCard(property)).join('');
         }
 
-        // Update archived button
-        const archivedBtn = document.getElementById('show-archived-btn');
-        archivedBtn.innerHTML = showingArchived 
-            ? '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg> Active'
-            : '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 8l6 6M19 8l-6 6M5 12h14"/></svg> Archived';
+        updatePropertyFilterButton();
     } catch (error) {
         console.error('Error refreshing properties screen:', error);
     }
@@ -278,12 +320,17 @@ function createPropertyCard(property) {
     const daysSinceMowed = getDaysSinceMowed(property);
     const daysSinceEdged = getDaysSinceEdged(property);
     const hasNotes = property.notes && property.notes.trim().length > 0;
+    const status = typeof getPropertyStatus === 'function'
+        ? getPropertyStatus(property)
+        : (property.archived ? 'sold' : (property.status || 'active'));
+    const statusLabel = getStatusLabel(status);
+    const priorityLabel = status === 'active' ? priority.label : statusLabel;
 
     return `
-        <div class="property-card priority-${priority.color}" data-property-id="${property.id}">
+        <div class="property-card priority-${priority.color} status-${status}" data-property-id="${property.id}">
             <div class="property-header">
                 <span class="property-name">${escapeHtml(property.name)}</span>
-                <span class="property-priority ${priority.color}">${priority.label}</span>
+                <span class="property-priority ${priority.color}">${priorityLabel}</span>
             </div>
             ${property.address ? `<div class="property-address">${escapeHtml(property.address)}</div>` : ''}
             <div class="property-stats">
@@ -292,6 +339,7 @@ function createPropertyCard(property) {
                 <span class="property-stat"><strong>Interval:</strong> ${property.interval}d</span>
             </div>
             <div class="property-status">
+                <span class="status-badge status-${status}">${statusLabel}</span>
                 ${daysSinceMowed !== null ? `<span class="status-badge mowed">Last: ${formatDate(property.lastMowed)}</span>` : '<span class="status-badge">Never mowed</span>'}
             </div>
             ${hasNotes ? `
@@ -510,7 +558,9 @@ function setupPropertyDetailModal() {
     }
 
     document.getElementById('edit-property-btn').addEventListener('click', handleEditProperty);
-    document.getElementById('archive-property-btn').addEventListener('click', handleArchiveProperty);
+    document.getElementById('activate-property-btn').addEventListener('click', () => handlePropertyStatusChange('active'));
+    document.getElementById('pause-property-btn').addEventListener('click', () => handlePropertyStatusChange('paused'));
+    document.getElementById('sold-property-btn').addEventListener('click', () => handlePropertyStatusChange('sold'));
     document.getElementById('delete-property-btn').addEventListener('click', handleDeleteProperty);
 }
 
@@ -538,31 +588,18 @@ async function openPropertyDetailModal(propertyId) {
         if (detailPayment) {
             detailPayment.textContent = `$${Number(property.paymentPerVisit || 0).toFixed(0)} per paid visit`;
         }
+        const status = typeof getPropertyStatus === 'function'
+            ? getPropertyStatus(property)
+            : (property.archived ? 'sold' : (property.status || 'active'));
         const detailStatus = document.getElementById('detail-status');
         if (detailStatus) {
-            detailStatus.textContent = property.status || (property.archived ? 'sold' : 'active');
+            detailStatus.textContent = getStatusLabel(status);
         }
         document.getElementById('detail-last-mowed-date').textContent = formatDate(property.lastMowed);
         document.getElementById('detail-last-edged-date').textContent = formatDate(property.lastEdged);
         document.getElementById('detail-notes').textContent = property.notes || '-';
 
-        // Update archive button text
-        const archiveBtn = document.getElementById('archive-property-btn');
-        if (property.archived) {
-            archiveBtn.innerHTML = `
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M5 13l4 4L19 7"/>
-                </svg>
-                Restore
-            `;
-        } else {
-            archiveBtn.innerHTML = `
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M5 8l6 6M19 8l-6 6M5 12h14"/>
-                </svg>
-                Archive
-            `;
-        }
+        updateStatusActionButtons(status);
 
         const modal = document.getElementById('property-detail-modal');
         modal.classList.remove('hidden');
@@ -572,6 +609,24 @@ async function openPropertyDetailModal(propertyId) {
     }
 }
 
+
+function updateStatusActionButtons(status) {
+    const activateBtn = document.getElementById('activate-property-btn');
+    const pauseBtn = document.getElementById('pause-property-btn');
+    const soldBtn = document.getElementById('sold-property-btn');
+    const recordVisitBtn = document.getElementById('record-visit-btn');
+
+    if (activateBtn) activateBtn.disabled = status === 'active';
+    if (pauseBtn) pauseBtn.disabled = status === 'paused';
+    if (soldBtn) soldBtn.disabled = status === 'sold';
+
+    if (recordVisitBtn) {
+        recordVisitBtn.disabled = status === 'sold';
+        recordVisitBtn.title = status === 'sold'
+            ? 'Sold properties are kept for history only. Set Active first to record new work.'
+            : '';
+    }
+}
 
 // ============================================
 // Record Visit Modal
@@ -720,20 +775,30 @@ async function openRecordVisitModal() {
             detailModal.classList.add('hidden');
         }
 
+        const status = typeof getPropertyStatus === 'function'
+            ? getPropertyStatus(property)
+            : (property.archived ? 'sold' : (property.status || 'active'));
+        if (status === 'sold') {
+            showToast('Sold properties are kept for history only. Set Active before recording new work.');
+            return;
+        }
+
         document.getElementById('visit-property-id').value = property.id;
         document.getElementById('visit-property-name').textContent = property.name;
-        document.getElementById('visit-property-meta').textContent = `Payment: $${Number(property.paymentPerVisit || 0).toFixed(0)} per paid visit`;
+        document.getElementById('visit-property-meta').textContent = `Status: ${getStatusLabel(status)} • Payment: $${Number(property.paymentPerVisit || 0).toFixed(0)} per paid visit`;
 
         const duplicateWarning = document.getElementById('visit-duplicate-warning');
-        duplicateWarning.classList.toggle('hidden', !property.cyclePaymentRecorded);
+        duplicateWarning.classList.toggle('hidden', status !== 'active' || !property.cyclePaymentRecorded);
 
-        document.getElementById('visit-work-mowed').checked = true;
+        document.getElementById('visit-work-mowed').checked = status === 'active';
         document.getElementById('visit-work-edged').checked = false;
         document.getElementById('visit-work-weed').checked = false;
         document.getElementById('visit-work-blower').checked = false;
-        document.getElementById('visit-work-check').checked = false;
+        document.getElementById('visit-work-check').checked = status === 'paused';
         document.getElementById('visit-work-none').checked = false;
-        document.getElementById('visit-counts-cycle').checked = true;
+        const countsCycleCheckbox = document.getElementById('visit-counts-cycle');
+        countsCycleCheckbox.checked = status === 'active';
+        countsCycleCheckbox.disabled = status !== 'active';
         document.getElementById('visit-date-option').value = 'today';
         document.getElementById('visit-custom-date').value = localDateInputValue();
         document.getElementById('visit-custom-date-group').classList.add('hidden');
@@ -742,7 +807,7 @@ async function openRecordVisitModal() {
         const paidCheckbox = document.getElementById('visit-paid');
         const paymentAmount = document.getElementById('visit-payment-amount');
         const defaultAmount = Number(property.paymentPerVisit || 0);
-        const shouldDefaultPaid = defaultAmount > 0 && !property.cyclePaymentRecorded;
+        const shouldDefaultPaid = status === 'active' && defaultAmount > 0 && !property.cyclePaymentRecorded;
         paidCheckbox.checked = shouldDefaultPaid;
         paymentAmount.value = shouldDefaultPaid ? defaultAmount : 0;
         paymentAmount.disabled = !shouldDefaultPaid;
@@ -770,13 +835,20 @@ async function handleVisitFormSubmit(event) {
             throw new Error('Choose at least one thing that was done');
         }
 
+        const status = typeof getPropertyStatus === 'function'
+            ? getPropertyStatus(property)
+            : (property.archived ? 'sold' : (property.status || 'active'));
+        if (status === 'sold') {
+            throw new Error('Sold properties are history-only. Set Active before recording new work.');
+        }
+
         const paid = document.getElementById('visit-paid').checked;
         const amount = paid ? parseFloat(document.getElementById('visit-payment-amount').value || '0') : 0;
-        const countsForCycle = document.getElementById('visit-counts-cycle').checked;
+        const countsForCycle = status === 'active' && document.getElementById('visit-counts-cycle').checked;
         const notes = document.getElementById('visit-notes').value.trim();
 
         let forceDuplicatePayment = false;
-        if (paid && amount > 0 && property.cyclePaymentRecorded) {
+        if (status === 'active' && paid && amount > 0 && property.cyclePaymentRecorded) {
             forceDuplicatePayment = confirm(`${property.name} already has payment recorded for this cycle. Record an additional paid visit anyway?`);
             if (!forceDuplicatePayment) {
                 return;
@@ -890,22 +962,37 @@ async function handleEditProperty() {
     }
 }
 
-async function handleArchiveProperty() {
+async function handlePropertyStatusChange(status) {
     if (!currentPropertyId) return;
 
     try {
-        const property = await getProperty(currentPropertyId);
-        if (!property) return;
+        const current = await getProperty(currentPropertyId);
+        if (!current) return;
 
-        if (property.archived) {
-            await restoreProperty(currentPropertyId);
-            await logPropertyRestored(currentPropertyId, property.name);
-            showToast('Property restored');
-        } else {
-            await archiveProperty(currentPropertyId);
-            await logPropertyArchived(currentPropertyId, property.name);
-            showToast('Property archived');
+        const currentStatus = typeof getPropertyStatus === 'function'
+            ? getPropertyStatus(current)
+            : (current.archived ? 'sold' : (current.status || 'active'));
+        if (currentStatus === status) {
+            showToast(`${current.name} is already ${getStatusLabel(status).toLowerCase()}`);
+            return;
         }
+
+        const label = getStatusLabel(status);
+        if (status === 'sold' && !confirm(`Mark ${current.name} as sold? It will leave the queue and stop counting toward cycles.`)) {
+            return;
+        }
+        if (status === 'paused' && !confirm(`Pause ${current.name}? It will leave the normal queue and current cycle until reactivated.`)) {
+            return;
+        }
+
+        const result = await setPropertyStatus(currentPropertyId, status);
+        await logPropertyStatusChanged(
+            currentPropertyId,
+            current.name,
+            getStatusLabel(result.previousStatus),
+            getStatusLabel(result.newStatus)
+        );
+        showToast(`${current.name} set to ${label}`);
 
         const modal = document.getElementById('property-detail-modal');
         modal.classList.add('hidden');
@@ -913,7 +1000,7 @@ async function handleArchiveProperty() {
 
         await refreshCurrentScreen();
     } catch (error) {
-        console.error('Error handling archive property:', error);
+        console.error('Error changing property status:', error);
         showToast(error.message);
     }
 }
@@ -960,16 +1047,14 @@ function setupSearch() {
     });
 
     document.getElementById('show-archived-btn').addEventListener('click', () => {
-        showingArchived = !showingArchived;
+        cyclePropertyStatusFilter();
         refreshPropertiesScreen();
     });
 }
 
 async function handleSearch(query) {
     try {
-        const properties = showingArchived 
-            ? await getArchivedProperties()
-            : await getActiveProperties();
+        const properties = await getPropertiesForStatusFilter();
 
         const filtered = filterPropertiesBySearch(properties, query);
         const sorted = sortPropertiesByPriority(filtered);
