@@ -199,3 +199,11 @@ ListMow is designed with privacy in mind:
 - No cloud data storage
 - No third-party services
 - Works completely offline
+
+
+## Current v2.2.0 Notes
+
+- Supports Active, Paused, and Sold property statuses.
+- Paused and Sold properties do not participate in the active mowing cycle.
+- Paused properties can still record non-cycle visits such as property checks.
+- Sold properties are preserved for history and can be reactivated if needed.

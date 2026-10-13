@@ -341,7 +341,7 @@ Goal:
 - Add optional visit notes.
 - Update lastMowed / lastEdged / lastInspection from visits.
 
-### v2.2.0 - Payment Ledger and Property Totals
+### v2.2.0 - Active / Paused / Sold property status controls
 
 Goal:
 
@@ -580,7 +580,7 @@ User confirmed: working.
 
 ## Progress Update - v2.1.0 Record Visit Workflow
 
-Status: PACKAGE PREPARED. Needs user upload/deploy and testing.
+Status: DEPLOYED AND CONFIRMED WORKING BY USER.
 
 Completed work in this package:
 
@@ -631,7 +631,6 @@ CHANGELOG.md
 Known limitations after v2.1.0:
 
 - Payment amounts are still not editable from the property edit form.
-- Paused/Sold controls are still not exposed in the UI.
 - Visit/payment ledger screens are not yet exposed.
 - Property timeline is not yet exposed.
 - Reminders are not yet exposed.
@@ -640,7 +639,7 @@ Known limitations after v2.1.0:
 Next task after v2.1.0 is deployed and confirmed:
 
 ```text
-v2.2.0 - Payment Ledger and Property Totals
+v2.2.0 - Active / Paused / Sold property status controls
 ```
 
 Recommended test after deploying v2.1.0:
@@ -653,3 +652,69 @@ Recommended test after deploying v2.1.0:
 6. Confirm Current Cycle progress updates.
 7. Open History and confirm visit/payment entries appear.
 8. Try a no-work-needed visit on another property and confirm it can count toward cycle without adding payment unless paid is checked.
+
+---
+
+## Progress Update - v2.2.0 Active / Paused / Sold Property Status Controls
+
+Status: PACKAGE PREPARED. Needs user upload/deploy and testing.
+
+Completed work in this package:
+
+- Added explicit property status controls:
+  - Set Active
+  - Pause
+  - Mark Sold
+- Replaced the old Archive/Restore action in the property detail modal with clearer status actions.
+- Added a property-list status filter that cycles through:
+  - Active
+  - Paused
+  - Sold
+- Added visible status badges on property cards.
+- Active properties remain in the normal queue and current cycle.
+- Paused properties are removed from the normal queue and current cycle, but can still record property-check style visits.
+- Sold properties are kept for history only and cannot record new work unless set back to Active.
+- Status changes clear current-cycle flags when moving a property out of Active.
+- Status changes are written to History.
+- Record Visit now defaults paused properties to Property Check, unpaid, and not counted toward cycle.
+- Bumped visible app version to v2.2.0.
+- Bumped service worker cache to v2.2.0.
+
+Changed files in v2.2.0 package:
+
+```text
+index.html
+styles.css
+js/properties.js
+js/history.js
+js/cycle.js
+js/ui.js
+service-worker.js
+LISTMOW_WORKFLOW.md
+CHANGELOG.md
+```
+
+Known limitations after v2.2.0:
+
+- Payment amounts are still not editable from the property edit form.
+- Visit/payment ledger screens are not yet exposed.
+- Property timeline is not yet exposed.
+- Reminders are not yet exposed.
+- GPS/directions are not yet exposed.
+
+Next task after v2.2.0 is deployed and confirmed:
+
+```text
+v2.3.0 - Payment Ledger and Property Totals
+```
+
+Recommended test after deploying v2.2.0:
+
+1. Open Settings and confirm version reads ListMow v2.2.0.
+2. Open a safe property and set it to Paused.
+3. Confirm it leaves the active queue and Current Cycle count changes.
+4. Go to Properties and tap the status filter until Paused is shown.
+5. Confirm the paused property appears there.
+6. Open the paused property and record an unpaid Property Check.
+7. Confirm earnings do not change and the active cycle does not advance.
+8. Set the property back to Active and confirm it returns to the normal list.

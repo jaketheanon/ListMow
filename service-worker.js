@@ -3,7 +3,7 @@
 // Advanced caching with version control
 // ============================================
 
-const CACHE_VERSION = 'v2.1.0';
+const CACHE_VERSION = 'v2.2.0';
 const CACHE_NAME = `listmow-${CACHE_VERSION}`;
 
 // Assets to cache during installation

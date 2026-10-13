@@ -370,6 +370,16 @@ select:focus-visible {
     border-left: 4px solid var(--priority-red);
 }
 
+.property-card.status-paused {
+    opacity: 0.9;
+    border-left-color: var(--priority-yellow);
+}
+
+.property-card.status-sold {
+    opacity: 0.72;
+    border-left-color: var(--md-sys-color-on-surface-variant);
+}
+
 .property-header {
     display: flex;
     justify-content: space-between;
@@ -453,6 +463,21 @@ select:focus-visible {
 .status-badge.mowed {
     background-color: var(--priority-green);
     color: white;
+}
+
+.status-badge.status-active {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: var(--priority-green);
+}
+
+.status-badge.status-paused {
+    background-color: rgba(255, 235, 59, 0.2);
+    color: var(--priority-yellow);
+}
+
+.status-badge.status-sold {
+    background-color: rgba(202, 196, 208, 0.2);
+    color: var(--md-sys-color-on-surface-variant);
 }
 
 .notes-indicator {
@@ -1043,6 +1068,33 @@ select:focus-visible {
 .archive-button {
     background-color: var(--priority-orange);
     color: white;
+}
+
+.active-status-button {
+    background-color: var(--priority-green);
+    color: white;
+}
+
+.pause-status-button {
+    background-color: var(--priority-yellow);
+    color: #1a1a1a;
+}
+
+.sold-status-button {
+    background-color: var(--priority-orange);
+    color: white;
+}
+
+.action-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.action-button:disabled:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .delete-button {

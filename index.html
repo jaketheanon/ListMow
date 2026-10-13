@@ -123,7 +123,7 @@
                         </svg>
                         Add Property
                     </button>
-                    <button id="show-archived-btn" class="secondary-button" aria-label="Show archived properties">
+                    <button id="show-archived-btn" class="secondary-button" aria-label="Showing active properties. Tap to change status filter.">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path d="M5 8l6 6M19 8l-6 6M5 12h14"/>
                         </svg>
@@ -224,7 +224,7 @@
                 <div class="settings-list">
                     <div class="setting-item app-version-item">
                         <div class="setting-label">App Version</div>
-                        <div class="setting-static" id="app-version-label">ListMow v2.1.0</div>
+                        <div class="setting-static" id="app-version-label">ListMow v2.2.0</div>
                         <span class="setting-desc">Visible build label so updates stop pretending to be invisible.</span>
                     </div>
                     <div class="setting-item">
@@ -408,11 +408,24 @@
                         </svg>
                         Edit
                     </button>
-                    <button class="action-button archive-button" id="archive-property-btn" aria-label="Archive property">
+                    <button class="action-button active-status-button" id="activate-property-btn" aria-label="Set property active">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M5 8l6 6M19 8l-6 6M5 12h14"/>
+                            <path d="M5 13l4 4L19 7"/>
                         </svg>
-                        Archive
+                        Set Active
+                    </button>
+                    <button class="action-button pause-status-button" id="pause-property-btn" aria-label="Pause property">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M10 4H6v16h4V4zM18 4h-4v16h4V4z"/>
+                        </svg>
+                        Pause
+                    </button>
+                    <button class="action-button sold-status-button" id="sold-property-btn" aria-label="Mark property sold">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/>
+                            <path d="M9 21h6"/>
+                        </svg>
+                        Mark Sold
                     </button>
                     <button class="action-button delete-button" id="delete-property-btn" aria-label="Delete property">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

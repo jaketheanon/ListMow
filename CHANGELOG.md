@@ -2,6 +2,24 @@
 
 All notable changes to ListMow will be documented in this file.
 
+## [2.2.0] - 2026-10-12
+
+### Added
+- Added Active / Paused / Sold property status controls from the property detail screen.
+- Added property list status filter cycling through Active, Paused, and Sold properties.
+- Added visible status badges on property cards.
+- Added status-change history entries.
+
+### Changed
+- Paused and sold properties are removed from the active queue and current cycle.
+- Paused properties can still record visits, but those visits do not count toward the active cycle by default.
+- Sold properties are history-only unless set back to Active.
+- Record Visit now defaults to property check for paused properties.
+- Service worker cache version bumped to v2.2.0.
+
+### Fixed
+- Replaced the old Archive/Restore detail action with explicit property status controls.
+
 ## [2.1.0] - 2026-10-12
 
 ### Added
