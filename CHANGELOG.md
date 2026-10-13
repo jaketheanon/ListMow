@@ -2,6 +2,36 @@
 
 All notable changes to ListMow will be documented in this file.
 
+## [2.1.0] - 2026-10-12
+
+### Added
+- Added Record Visit workflow with mowed, edged, weed eating, blower cleanup, property check, and no-work-needed options.
+- Added visit date choices: today, yesterday, and custom date.
+- Added paid/unpaid visit controls with per-visit amount override.
+- Added visit notes.
+- Added duplicate paid-visit confirmation for properties already paid in the current cycle.
+- Added property detail display for payment amount and status.
+
+### Changed
+- Replaced visible Mowed Today and Edged Today property detail actions with Record Visit.
+- Paid visits now create visit and payment records through the general visit workflow.
+- Service worker cache version bumped to v2.1.0.
+
+### Fixed
+- Keeps cycle completion from adding legacy fixed round payouts while using the new visit workflow.
+
+## [2.0.1] - 2026-10-12
+
+### Added
+- Added Current Cycle dashboard progress card.
+- Added visible app version in Settings.
+- Added History screen Home button.
+
+### Fixed
+- Android/PWA back button now navigates app screens instead of immediately closing the app.
+- Legacy history entries showing `Cycle complete! +$260` are labeled as old round-payout history.
+- Service worker cache version bumped to v2.0.1.
+
 ## [2.0.0] - 2024-08-08
 
 ### Added

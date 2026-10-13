@@ -557,3 +557,99 @@ Recommended test after deploying v2.0.0:
 5. Mark Scott mowed and confirm total becomes $1700.
 6. Confirm cycle count increments and the current cycle resets after Scott.
 7. Export a backup and confirm it includes visits and payments.
+
+---
+
+## Progress Update - v2.0.1 Cycle Progress and History Navigation Fix
+
+Status: DEPLOYED AND CONFIRMED WORKING BY USER.
+
+Completed work:
+
+- Added visible Current Cycle dashboard card.
+- Added remaining-property names to the cycle progress display.
+- Added History screen Home button.
+- Added browser/PWA back-button screen navigation.
+- Added visible app version label in Settings.
+- Updated old legacy cycle-complete history display so `+$260` is labeled as an old round payout.
+- Bumped service worker cache to v2.0.1.
+
+User confirmed: working.
+
+---
+
+## Progress Update - v2.1.0 Record Visit Workflow
+
+Status: PACKAGE PREPARED. Needs user upload/deploy and testing.
+
+Completed work in this package:
+
+- Replaced the old visible Mowed Today / Edged Today buttons with one Record Visit button.
+- Added Record Visit modal.
+- Visit form supports:
+  - mowed
+  - edged
+  - weed eating
+  - blower cleanup
+  - property check
+  - no work needed
+- Visit dates support:
+  - today
+  - yesterday
+  - custom date
+- Visit form supports:
+  - counts toward current cycle
+  - paid/unpaid
+  - per-visit payment amount override
+  - notes
+- Paid visits immediately add to earnings.
+- Paid visits create payment records.
+- All visits create visit records.
+- General visits update property state:
+  - mowed updates lastMowed
+  - edged updates lastEdged
+  - property check / no work needed updates lastInspection
+  - counts-toward-cycle marks the property complete for the current cycle
+- Duplicate paid visits in the same cycle require explicit confirmation.
+- Cycle completion still increments completed cycles and resets flags without adding fixed round payout.
+- Added payment and status display to the property detail modal.
+- Bumped visible app version to v2.1.0.
+- Bumped service worker cache to v2.1.0.
+
+Changed files in v2.1.0 package:
+
+```text
+index.html
+styles.css
+js/cycle.js
+js/ui.js
+service-worker.js
+LISTMOW_WORKFLOW.md
+CHANGELOG.md
+```
+
+Known limitations after v2.1.0:
+
+- Payment amounts are still not editable from the property edit form.
+- Paused/Sold controls are still not exposed in the UI.
+- Visit/payment ledger screens are not yet exposed.
+- Property timeline is not yet exposed.
+- Reminders are not yet exposed.
+- GPS/directions are not yet exposed.
+
+Next task after v2.1.0 is deployed and confirmed:
+
+```text
+v2.2.0 - Payment Ledger and Property Totals
+```
+
+Recommended test after deploying v2.1.0:
+
+1. Open Settings and confirm version reads ListMow v2.1.0.
+2. Open Hallie or Scott.
+3. Tap Record Visit.
+4. Save a mowed paid visit.
+5. Confirm earnings increase by that property's amount.
+6. Confirm Current Cycle progress updates.
+7. Open History and confirm visit/payment entries appear.
+8. Try a no-work-needed visit on another property and confirm it can count toward cycle without adding payment unless paid is checked.

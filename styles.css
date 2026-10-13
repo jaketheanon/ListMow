@@ -1218,6 +1218,103 @@ select:focus-visible {
     color: var(--priority-green);
 }
 
+
+/* ============================================
+   Visit Workflow
+   ============================================ */
+
+.visit-button {
+    background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-secondary));
+    color: var(--md-sys-color-on-primary);
+}
+
+.visit-modal-content {
+    max-height: 92vh;
+    overflow-y: auto;
+}
+
+.visit-context-card {
+    background: var(--md-sys-color-surface-variant);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--md-sys-color-outline);
+}
+
+.visit-property-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--md-sys-color-on-surface);
+    margin-bottom: var(--spacing-xs);
+}
+
+.visit-property-meta {
+    font-size: 14px;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.visit-warning {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 193, 7, 0.12);
+    color: var(--priority-yellow);
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.checkbox-grid {
+    display: grid;
+    gap: var(--spacing-sm);
+}
+
+.visit-work-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-height: 44px;
+    padding: var(--spacing-sm);
+    background: var(--md-sys-color-surface-variant);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--md-sys-color-primary);
+}
+
+.payment-inline {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.payment-inline label {
+    font-size: 14px;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.visit-cycle-group,
+.visit-payment-group {
+    gap: var(--spacing-xs);
+}
+
+@media (max-width: 420px) {
+    .visit-work-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ============================================
    Hidden Utility
    ============================================ */

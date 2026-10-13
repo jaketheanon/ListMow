@@ -224,7 +224,7 @@
                 <div class="settings-list">
                     <div class="setting-item app-version-item">
                         <div class="setting-label">App Version</div>
-                        <div class="setting-static" id="app-version-label">ListMow v2.0.1</div>
+                        <div class="setting-static" id="app-version-label">ListMow v2.1.0</div>
                         <span class="setting-desc">Visible build label so updates stop pretending to be invisible.</span>
                     </div>
                     <div class="setting-item">
@@ -373,6 +373,14 @@
                         <span class="detail-value" id="detail-interval">-</span>
                     </div>
                     <div class="detail-item">
+                        <span class="detail-label">Payment</span>
+                        <span class="detail-value" id="detail-payment">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value" id="detail-status">-</span>
+                    </div>
+                    <div class="detail-item">
                         <span class="detail-label">Last Mowed</span>
                         <span class="detail-value" id="detail-last-mowed-date">-</span>
                     </div>
@@ -386,17 +394,12 @@
                     </div>
                 </div>
                 <div class="detail-actions">
-                    <button class="action-button mow-button" id="mow-today-btn" aria-label="Mark as mowed today">
+                    <button class="action-button visit-button" id="record-visit-btn" aria-label="Record property visit">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M5 13l4 4L19 7"/>
+                            <path d="M9 11l3 3L22 4"/>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                         </svg>
-                        Mowed Today
-                    </button>
-                    <button class="action-button edge-button" id="edge-today-btn" aria-label="Mark as edged today">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path d="M5 13l4 4L19 7"/>
-                        </svg>
-                        Edged Today
+                        Record Visit
                     </button>
                     <button class="action-button edit-button" id="edit-property-btn" aria-label="Edit property">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -419,6 +422,80 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Record Visit Modal -->
+    <div id="visit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="visit-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content visit-modal-content">
+            <div class="modal-header">
+                <h3 id="visit-modal-title">Record Visit</h3>
+                <button class="modal-close" id="close-visit-modal" aria-label="Close visit modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <form id="visit-form" class="modal-body">
+                <input type="hidden" id="visit-property-id">
+
+                <div class="visit-context-card">
+                    <div class="visit-property-name" id="visit-property-name">Property</div>
+                    <div class="visit-property-meta" id="visit-property-meta">Payment: $0</div>
+                    <div class="visit-warning hidden" id="visit-duplicate-warning">Payment already recorded for this property in the current cycle.</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Work Done</label>
+                    <div class="checkbox-grid visit-work-grid">
+                        <label class="checkbox-row"><input type="checkbox" id="visit-work-mowed" value="mowed"> <span>Mowed</span></label>
+                        <label class="checkbox-row"><input type="checkbox" id="visit-work-edged" value="edged"> <span>Edged</span></label>
+                        <label class="checkbox-row"><input type="checkbox" id="visit-work-weed" value="weed_eating"> <span>Weed eating</span></label>
+                        <label class="checkbox-row"><input type="checkbox" id="visit-work-blower" value="blower_cleanup"> <span>Blower cleanup</span></label>
+                        <label class="checkbox-row"><input type="checkbox" id="visit-work-check" value="property_check"> <span>Property check</span></label>
+                        <label class="checkbox-row"><input type="checkbox" id="visit-work-none" value="no_work_needed"> <span>No work needed</span></label>
+                    </div>
+                    <span class="form-desc">Choose everything that happened during this visit.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="visit-date-option">Visit Date</label>
+                    <select id="visit-date-option" class="form-select">
+                        <option value="today" selected>Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="custom">Choose Date</option>
+                    </select>
+                </div>
+                <div class="form-group hidden" id="visit-custom-date-group">
+                    <label for="visit-custom-date">Choose Date</label>
+                    <input type="date" id="visit-custom-date" class="form-input">
+                </div>
+
+                <div class="form-group visit-cycle-group">
+                    <label class="checkbox-row"><input type="checkbox" id="visit-counts-cycle" checked> <span>Counts toward current cycle</span></label>
+                    <span class="form-desc">Leave this checked for a normal completed stop, including no-work-needed checks.</span>
+                </div>
+
+                <div class="form-group visit-payment-group">
+                    <label class="checkbox-row"><input type="checkbox" id="visit-paid"> <span>Paid visit</span></label>
+                    <div class="payment-inline">
+                        <label for="visit-payment-amount">Amount</label>
+                        <input type="number" id="visit-payment-amount" class="form-input" min="0" step="1" value="0">
+                    </div>
+                    <span class="form-desc">The saved property amount is used by default. Changing it here affects this visit only.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="visit-notes">Visit Notes</label>
+                    <textarea id="visit-notes" class="form-textarea" rows="3" placeholder="Optional notes, reminders, trash, branches, access issues, etc."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="secondary-button" id="cancel-visit-modal">Cancel</button>
+                    <button type="submit" class="primary-button">Save Visit</button>
+                </div>
+            </form>
         </div>
     </div>
 
